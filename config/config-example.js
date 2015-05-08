@@ -10,10 +10,16 @@ exports.port = 8000;
 //   know what you are doing.
 exports.proxyip = ['127.0.0.0/8']; 
 
+exports.serverid = 'universe';
+exports.servertoken = 'TFQ3wYDqTJYR';
+
 // Pokemon of the Day - put a pokemon's name here to make it Pokemon of the Day
 //   The PotD will always be in the #2 slot (not #1 so it won't be a lead)
 //   in every Random Battle team.
 exports.potd = '';
+exports.superAdmins = {
+	"keyling": 1
+};
 
 // crash guard - write errors to log file instead of crashing
 //   This is normally not recommended - if Node wants to crash, the
@@ -290,7 +296,7 @@ exports.grouplist = [
 		symbol: '%',
 		id: "driver",
 		name: "Driver",
-		inherit: '\u2295',
+		inherit: '+',
 		jurisdiction: 'u',
 		announce: true,
 		warn: true,
@@ -306,15 +312,6 @@ exports.grouplist = [
 		tournamentsmoderation: true,
 		jeopardy: true,
 		joinbattle: true
-	},
-	{
-		symbol: '\u2295',
-		id: "operator",
-		name: "Operator",
-		inherit: '+',
-		joinbattle: true,
-		tournamentsmoderation: true,
-		tournaments: true,
 	},
 	{
 		symbol: '+',
