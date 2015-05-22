@@ -95,6 +95,8 @@ exports.BattleScripts = {
 		if (pokemon.movedThisTurn || !this.runEvent('BeforeMove', pokemon, target, move)) {
 			// Prevent invulnerability from persisting until the turn ends.
 			pokemon.removeVolatile('twoturnmove');
+			// Rampage moves end without causing confusion
+			delete pokemon.volatiles['lockedmove'];
 			this.clearActiveMove(true);
 			// This is only run for sleep.
 			this.runEvent('AfterMoveSelf', pokemon, target, move);
@@ -948,7 +950,7 @@ exports.BattleScripts = {
 		for (var i = 0; i < 6; i++) {
 			while (true) {
 				var x = Math.floor(Math.random() * 151) + 1;
-				if (teamdexno.indexOf(x) === -1) {
+				if (teamdexno.indexOf(x) < 0) {
 					teamdexno.push(x);
 					break;
 				}

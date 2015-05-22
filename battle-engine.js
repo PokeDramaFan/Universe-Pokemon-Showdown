@@ -11,6 +11,7 @@
  */
 
 require('sugar');
+if (!''.includes) require('es6-shim');
 
 global.Config = require('./config/config-example.js');
 
@@ -828,7 +829,7 @@ BattlePokemon = (function () {
 				if (this.hasType(type[i])) return true;
 			}
 		} else {
-			if (this.getTypes().indexOf(type) > -1) return true;
+			if (this.getTypes().indexOf(type) >= 0) return true;
 		}
 		return false;
 	};
@@ -1109,6 +1110,7 @@ BattlePokemon = (function () {
 		return this.battle.getAbility(this.ability);
 	};
 	BattlePokemon.prototype.hasAbility = function (ability) {
+		if (!this.isActive && this.battle.gen >= 5) return false;
 		if (this.ignore['Ability']) return false;
 		var ownAbility = this.ability;
 		if (!Array.isArray(ability)) {
@@ -2748,7 +2750,7 @@ Battle = (function () {
 					break;
 				}
 			}
-			if (center) this.add('-message', 'Automatic center!');
+			if (center) this.add('-center');
 		}
 		this.makeRequest('move');
 	};

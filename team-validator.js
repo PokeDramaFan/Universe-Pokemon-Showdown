@@ -101,7 +101,7 @@ if (!process.send) {
 } else {
 	require('sugar');
 	global.Config = require('./config/config-example.js');
-
+	if (!''.includes) require('es6-shim');
 	if (Config.crashguard) {
 		process.on('uncaughtException', function (err) {
 			require('./crashlogger.js')(err, 'A team validator process');
@@ -594,7 +594,7 @@ Validator = (function () {
 			// STABmons hack to avoid copying all of validateSet to formats
 			if (format.banlistTable && format.banlistTable['ignorestabmoves'] && move !== 'chatter') {
 				if (template.species === 'Shaymin') template.types = tools.getTemplate('shayminsky').types;
-				if (template.types.indexOf(tools.getMove(move).type) > -1) return false;
+				if (template.types.indexOf(tools.getMove(move).type) >= 0) return false;
 			}
 			if (template.learnset) {
 				if (template.learnset[move] || template.learnset['sketch']) {
@@ -685,7 +685,7 @@ Validator = (function () {
 											if (dexEntry.eggGroups.intersect(eggGroups).length) {
 												if (tools.gen === 2 && lsetData.hasEggMove && lsetData.hasEggMove !== move) {
 													// If the mon already has an egg move by a father, other different father can't give it another egg move.
-													if (lsetData.eggParents.indexOf(dexEntry.species) > -1) {
+													if (lsetData.eggParents.indexOf(dexEntry.species) >= 0) {
 														// We have to test here that the father of both moves doesn't get both by egg breeding
 														var learnsFrom = false;
 														for (var ltype = 0; ltype < dexEntry.learnset[lsetData.hasEggMove].length; ltype++) {
@@ -695,14 +695,18 @@ Validator = (function () {
 														// If the previous egg move was learnt by the father through an egg as well:
 														if (learnsFrom === 'E') {
 															var secondLearnsFrom = false;
-															for (var ltype = 0; ltype < dexEntry.learnset[move].length; ltype++) {
-																// Save first learning type. After that, only save it if we have egg and it's not egg.
-																secondLearnsFrom = !secondLearnsFrom || secondLearnsFrom === 'E' ? dexEntry.learnset[move][ltype].charAt(1) : secondLearnsFrom;
-															}
-															// Ok, both moves are learnt by father through an egg, therefor, it's impossible.
-															if (secondLearnsFrom === 'E') {
-																lsetData.blockedGen2Move = true;
-																continue;
+															var lsetToCheck = (dexEntry.learnset[move]) ? dexEntry.learnset[move] : dexEntry.learnset['sketch'];
+															// Have here either the move learnset or sketch learnset for Smeargle.
+															if (lsetToCheck) {
+																for (var ltype = 0; ltype < lsetToCheck.length; ltype++) {
+																	// Save first learning type. After that, only save it if we have egg and it's not egg.
+																	secondLearnsFrom = !secondLearnsFrom || secondLearnsFrom === 'E' ? dexEntry.learnset[move][ltype].charAt(1) : secondLearnsFrom;
+																}
+																// Ok, both moves are learnt by father through an egg, therefor, it's impossible.
+																if (secondLearnsFrom === 'E') {
+																	lsetData.blockedGen2Move = true;
+																	continue;
+																}
 															}
 														}
 													} else {
