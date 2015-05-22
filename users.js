@@ -759,6 +759,19 @@ User = (function () {
 		for (var i in this.roomCount) {
 			Rooms.get(i, 'lobby').onRename(this, oldid, joining);
 		}
+		
+		if (global.Permaban && !this.can('staff')) {
+			if (Permaban.permaBan[userid]) {
+				this.send("|popup|Your username (" + name + ") is banned.");
+				this.ban(true, userid);
+				return;
+			}
+			if (Permaban.permaLock[userid]) {
+				this.send("|popup|Your username (" + name + ") is locked.");
+				this.lock(true, userid);
+			}
+		}
+		
 		return true;
 	};
 	User.prototype.resetName = function () {

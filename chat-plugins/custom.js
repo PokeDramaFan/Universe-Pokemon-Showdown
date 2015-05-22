@@ -74,11 +74,12 @@ exports.commands = {
 	},
 
 	clearall: function (target, room, user, connection) {
-		if (!user.hasConsoleAccess(connection)) {return this.sendReply("/clearall - Access denied.");}
+		//if (!user.hasConsoleAccess(connection)) {return this.sendReply("/clearall - Access denied.");}
+		if (!this.can('clearall')) return;
 		var len = room.log.length,
 			users = [];
 		while (len--) {
-			room.log[len] = '';
+			delete room.log[len];
 		}
 		for (var user in room.users) {
 			users.push(user);
