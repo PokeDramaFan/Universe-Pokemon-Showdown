@@ -100,7 +100,7 @@ if (!process.send) {
 	};
 } else {
 	require('sugar');
-	global.Config = require('./config/config.js');
+	global.Config = require('./config/config-example.js');
 
 	if (Config.crashguard) {
 		process.on('uncaughtException', function (err) {

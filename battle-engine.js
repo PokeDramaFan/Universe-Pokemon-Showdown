@@ -12,7 +12,7 @@
 
 require('sugar');
 
-global.Config = require('./config/config.js');
+global.Config = require('./config/config-example.js');
 
 if (Config.crashguard) {
 	// graceful crash - allow current battles to finish before restarting

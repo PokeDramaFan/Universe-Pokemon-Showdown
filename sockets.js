@@ -12,12 +12,12 @@
  */
 
 var cluster = require('cluster');
-global.Config = require('./config/config');
+global.Config = require('./config/config-example.js');
 global.DATA_DIR = (process.env.OPENSHIFT_DATA_DIR) ? process.env.OPENSHIFT_DATA_DIR : './config/';
 
 if (cluster.isMaster) {
 	cluster.setupMaster({
-		exec: require('path').resolve(__dirname, 'sockets.js')
+		exec: 'sockets.js'
 	});
 
 	var workers = exports.workers = {};

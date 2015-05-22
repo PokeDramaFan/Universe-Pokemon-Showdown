@@ -82,9 +82,9 @@ if (isLegacyEngine && !new Map().set()) {
 
 // Synchronously, since it's needed before we can start the server
 //if (!fs.existsSync('./config/config.js')) {
-	console.log("config.js doesn't exist - creating one with default settings...");
-	fs.writeFileSync(path.resolve(__dirname, 'config/config.js'),
-		fs.readFileSync(path.resolve(__dirname, 'config/config-example.js'))
+	//console.log("config.js doesn't exist - creating one with default settings...");
+	fs.writeFileSync('config/config.js',
+		fs.readFileSync('config/config-example.js')
 	);
 //}
 
@@ -99,7 +99,7 @@ if (!fs.existsSync(LOGS_DIR)) {
 	fs.mkdirSync(LOGS_DIR + 'repl/');
 }
 
-global.Config = require('./config/config.js');
+global.Config = require('./config/config-example.js');
 
 if (Config.watchconfig) {
 	fs.watchFile(path.resolve(__dirname, 'config/config.js'), function (curr, prev) {
