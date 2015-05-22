@@ -11,6 +11,7 @@ exports.port = 8000;
 exports.proxyip = ['127.0.0.0/8']; 
 
 exports.serverid = 'universe';
+
 exports.servertoken = '8/IC5mh8hbkc';
 
 // Pokemon of the Day - put a pokemon's name here to make it Pokemon of the Day
@@ -309,6 +310,7 @@ exports.grouplist = [
 		alts: '%u',
 		bypassblocks: 'u%@&~',
 		receiveauthmessages: true,
+		tournaments: true,
 		tournamentsmoderation: true,
 		jeopardy: true,
 		joinbattle: true
