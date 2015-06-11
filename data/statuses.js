@@ -151,7 +151,11 @@ exports.BattleStatuses = {
 			if (this.random(2) === 0) {
 				return;
 			}
-			this.directDamage(this.getDamage(pokemon, pokemon, 40));
+			this.damage(this.getDamage(pokemon, pokemon, 40), pokemon, pokemon, {
+				id: 'confused',
+				effectType: 'Move',
+				type: '???'
+			});
 			return false;
 		}
 	},
@@ -263,7 +267,7 @@ exports.BattleStatuses = {
 				pokemon.removeVolatile('choicelock');
 				return;
 			}
-			if (pokemon.ignore['Item']) {
+			if (pokemon.ignoringItem()) {
 				return;
 			}
 			var moves = pokemon.moveset;
@@ -631,7 +635,7 @@ exports.BattleStatuses = {
 		onSwitchIn: function (pokemon) {
 			var type = 'Normal';
 			if (pokemon.ability === 'multitype') {
-				type = this.runEvent('Plate', pokemon);
+				type = pokemon.getItem().onPlate;
 				if (!type || type === true) {
 					type = 'Normal';
 				}
