@@ -507,8 +507,6 @@ User = (function () {
 		//       the `ips` object, not just the latest IP.
 		this.latestIp = connection.ip;
 
-		this.mutedRooms = {};
-		this.muteDuration = {};
 		this.locked = Users.checkLocked(connection.ip);
 		this.prevNames = {};
 		this.battles = {};
@@ -558,10 +556,10 @@ User = (function () {
 			return '‽' + this.name;
 		}
 		if (roomid) {
-			if (this.mutedRooms[roomid]) {
+			var room = Rooms.rooms[roomid];
+			if (room.isMuted(this)) {
 				return '!' + this.name;
 			}
-			var room = Rooms.rooms[roomid];
 			if (room && room.auth) {
 				if (room.auth[this.userid]) {
 					return room.auth[this.userid] + this.name;
@@ -807,7 +805,7 @@ User = (function () {
 	};
 	User.prototype.filterName = function (name) {
 		if (Config.namefilter) {
-			name = Config.namefilter(name);
+			name = Config.namefilter(name, this);
 		}
 		name = toName(name);
 		name = name.replace(/^[^A-Za-z0-9]+/, "");
@@ -835,15 +833,20 @@ User = (function () {
 		}
 
 		if (!name) name = '';
+		if (!/[a-zA-Z]/.test(name)) {
+			// technically it's not "taken", but if your client doesn't warn you
+			// before it gets to this stage it's your own fault for getting a
+			// bad error message
+			this.send('|nametaken|' + "|Your name must contain at least one letter.");
+			return false;
+		}
+
 		name = this.filterName(name);
 		var userid = toId(name);
 		if (this.registered) auth = false;
 
 		if (!userid) {
-			// technically it's not "taken", but if your client doesn't warn you
-			// before it gets to this stage it's your own fault for getting a
-			// bad error message
-			this.send('|nametaken|' + "|You did not specify a name or your name was invalid.");
+			this.send('|nametaken|' + "|Your name contains a banned word.");
 			return false;
 		} else {
 			if (userid === this.userid && !auth) {
@@ -985,11 +988,7 @@ User = (function () {
 				}
 				if (!user.registered) {
 					if (Object.isEmpty(Object.select(this.ips, user.ips))) {
-						user.mutedRooms = Object.merge(user.mutedRooms, this.mutedRooms);
-						user.muteDuration = Object.merge(user.muteDuration, this.muteDuration);
 						if (this.locked) user.locked = this.locked;
-						this.mutedRooms = {};
-						this.muteDuration = {};
 						this.locked = false;
 					}
 				}
@@ -1004,8 +1003,11 @@ User = (function () {
 				this.connections = [];
 				// merge IPs
 				for (var ip in this.ips) {
-					if (user.ips[ip]) user.ips[ip] += this.ips[ip];
-					else user.ips[ip] = this.ips[ip];
+					if (user.ips[ip]) {
+						user.ips[ip] += this.ips[ip];
+					} else {
+						user.ips[ip] = this.ips[ip];
+					}
 				}
 				this.ips = {};
 				user.latestIp = this.latestIp;
@@ -1036,9 +1038,10 @@ User = (function () {
 			// rename success
 			this.isSysop = isSysop;
 			if (avatar) this.avatar = avatar;
-			if (this.ignorePMs && this.can('lock') && !this.can('bypassall')) this.ignorePMs = false;
 			if (this.forceRename(name, registered)) {
+				if (this.ignorePMs && this.can('lock') && !this.can('bypassall')) this.ignorePMs = false;
 				Rooms.global.checkAutojoin(this);
+				if (Config.loginfilter) Config.loginfilter(this);
 				return true;
 			}
 			return false;
@@ -1085,8 +1088,11 @@ User = (function () {
 			str += ' socket' + i + '[';
 			var first = true;
 			for (var j in connection.rooms) {
-				if (first) first = false;
-				else str += ', ';
+				if (first) {
+					first = false;
+				} else {
+					str += ', ';
+				}
 				str += j;
 			}
 			str += ']';
@@ -1212,10 +1218,6 @@ User = (function () {
 	};
 	User.prototype.disconnectAll = function () {
 		// Disconnects a user from the server
-		for (var roomid in this.mutedRooms) {
-			clearTimeout(this.mutedRooms[roomid]);
-			delete this.mutedRooms[roomid];
-		}
 		this.clearChatQueue();
 		var connection = null;
 		this.markInactive();
@@ -1293,42 +1295,6 @@ User = (function () {
 			this.mmrCache[formatid] = mmr;
 		} else {
 			this.mmrCache[formatid] = Number(mmr.acre);
-		}
-	};
-	User.prototype.mute = function (roomid, time, force, noRecurse) {
-		if (!roomid) roomid = 'lobby';
-		if (this.mutedRooms[roomid] && !force) return;
-		if (!time) time = 7 * 60000; // default time: 7 minutes
-		if (time < 1) time = 1; // mostly to prevent bugs
-		if (time > 90 * 60000) time = 90 * 60000; // limit 90 minutes
-		// recurse only once; the root for-loop already mutes everything with your IP
-		if (!noRecurse) {
-			for (var i in users) {
-				if (users[i] === this || users[i].confirmed) continue;
-				for (var myIp in this.ips) {
-					if (myIp in users[i].ips) {
-						users[i].mute(roomid, time, force, true);
-						break;
-					}
-				}
-			}
-		}
-
-		var self = this;
-		if (this.mutedRooms[roomid]) clearTimeout(this.mutedRooms[roomid]);
-		this.mutedRooms[roomid] = setTimeout(function () {
-			self.unmute(roomid, true);
-		}, time);
-		this.muteDuration[roomid] = time;
-		this.updateIdentity(roomid);
-	};
-	User.prototype.unmute = function (roomid, expired) {
-		if (!roomid) roomid = 'lobby';
-		if (this.mutedRooms[roomid]) {
-			clearTimeout(this.mutedRooms[roomid]);
-			delete this.mutedRooms[roomid];
-			if (expired) this.popup("Your mute has expired.");
-			this.updateIdentity(roomid);
 		}
 	};
 	User.prototype.ban = function (noRecurse, userid) {
@@ -1411,7 +1377,7 @@ User = (function () {
 		}
 		if (room.isPrivate) {
 			if (!this.named) {
-				return connection.sendTo(roomid, "|noinit|namerequired|You must have a name in order to join the room '" + roomid + "'.");
+				return null;
 			}
 		}
 
@@ -1688,10 +1654,6 @@ User = (function () {
 	};
 	User.prototype.destroy = function () {
 		// deallocate user
-		for (var roomid in this.mutedRooms) {
-			clearTimeout(this.mutedRooms[roomid]);
-			delete this.mutedRooms[roomid];
-		}
 		this.clearChatQueue();
 		delete users[this.userid];
 	};
@@ -1723,6 +1685,7 @@ Connection = (function () {
 
 		this.ip = ip || '';
 	}
+	Connection.prototype.autojoin = '';
 
 	Connection.prototype.sendTo = function (roomid, data) {
 		if (roomid && roomid.id) roomid = roomid.id;

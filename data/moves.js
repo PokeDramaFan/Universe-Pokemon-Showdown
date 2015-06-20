@@ -904,8 +904,8 @@ exports.BattleMovedex = {
 				return false;
 			}
 			this.directDamage(target.maxhp / 2);
-			target.setBoost({atk: 6});
-			this.add('-setboost', target, 'atk', '6', '[from] move: Belly Drum');
+			this.boost({atk: 12}, target);
+			this.add('-setboost', target, 'atk', target.boosts['atk'], '[from] move: Belly Drum');
 		},
 		secondary: false,
 		target: "self",
@@ -4702,11 +4702,8 @@ exports.BattleMovedex = {
 			onStart: function (pokemon) {
 				this.add('-start', pokemon, 'Foresight');
 			},
-			onModifyPokemon: function (pokemon) {
-				if (pokemon.hasType('Ghost')) {
-					pokemon.negateImmunity['Normal'] = true;
-					pokemon.negateImmunity['Fighting'] = true;
-				}
+			onNegateImmunity: function (pokemon, type) {
+				if (pokemon.hasType('Ghost') && type in {'Normal': 1, 'Fighting': 1}) return false;
 			},
 			onModifyBoost: function (boosts) {
 				if (boosts.evasion && boosts.evasion > 0) {
@@ -5401,7 +5398,6 @@ exports.BattleMovedex = {
 			},
 			onModifyPokemonPriority: 100,
 			onModifyPokemon: function (pokemon) {
-				pokemon.negateImmunity['Ground'] = true;
 				var applies = false;
 				if (pokemon.removeVolatile('bounce') || pokemon.removeVolatile('fly')) {
 					applies = true;
@@ -5427,6 +5423,9 @@ exports.BattleMovedex = {
 					delete pokemon.volatiles['telekinesis'];
 				}
 				if (applies) this.add('-activate', pokemon, 'Gravity');
+			},
+			onNegateImmunity: function (pokemon, type) {
+				if (type === 'Ground') return false;
 			},
 			onBeforeMovePriority: 6,
 			onBeforeMove: function (pokemon, target, move) {
@@ -7104,8 +7103,10 @@ exports.BattleMovedex = {
 				this.heal(pokemon.maxhp / 16);
 			},
 			onModifyPokemon: function (pokemon) {
-				pokemon.negateImmunity['Ground'] = true;
 				pokemon.tryTrap();
+			},
+			onNegateImmunity: function (pokemon, type) {
+				if (type === 'Ground') return false;
 			},
 			onDragOut: function (pokemon) {
 				this.add('-activate', pokemon, 'move: Ingrain');
@@ -7356,9 +7357,8 @@ exports.BattleMovedex = {
 			}
 		},
 		onAfterHit: function (target, source) {
-			if (target.hasAbility('stickyhold')) return;
 			if (source.hp) {
-				var item = target.takeItem();
+				var item = target.takeItem(source);
 				if (item) {
 					this.add('-enditem', target, item.name, '[from] move: Knock Off', '[of] ' + source);
 				}
@@ -8605,8 +8605,8 @@ exports.BattleMovedex = {
 			onStart: function (pokemon) {
 				this.add('-start', pokemon, 'Miracle Eye');
 			},
-			onModifyPokemon: function (pokemon) {
-				if (pokemon.hasType('Dark')) pokemon.negateImmunity['Psychic'] = true;
+			onNegateImmunity: function (pokemon, type) {
+				if (pokemon.hasType('Dark') && type === 'Psychic') return false;
 			},
 			onModifyBoost: function (boosts) {
 				if (boosts.evasion && boosts.evasion > 0) {
@@ -10788,10 +10788,9 @@ exports.BattleMovedex = {
 		priority: 0,
 		flags: {snatch: 1},
 		onHit: function (pokemon) {
-			if (!pokemon.item && pokemon.lastItem) {
-				pokemon.setItem(pokemon.lastItem);
-				this.add("-item", pokemon, pokemon.getItem(), '[from] move: Recycle');
-			} else return false;
+			if (pokemon.item || !pokemon.lastItem) return false;
+			pokemon.setItem(pokemon.lastItem);
+			this.add('-item', pokemon, pokemon.getItem(), '[from] move: Recycle');
 		},
 		secondary: false,
 		target: "self",
@@ -12573,7 +12572,8 @@ exports.BattleMovedex = {
 		effect: {
 			onStart: function (pokemon) {
 				var applies = false;
-				if ((pokemon.hasType('Flying') && !pokemon.volatiles['roost']) || pokemon.hasAbility('levitate')) applies = true;
+				if (pokemon.hasType('Flying') || pokemon.hasAbility('levitate')) applies = true;
+				if (pokemon.hasItem('ironball') || pokemon.volatiles['ingrain'] || this.getPseudoWeather('gravity')) applies = false;
 				if (pokemon.removeVolatile('fly') || pokemon.removeVolatile('bounce')) {
 					applies = true;
 					this.cancelMove(pokemon);
@@ -12596,9 +12596,8 @@ exports.BattleMovedex = {
 					this.add('-start', pokemon, 'Smack Down');
 				}
 			},
-			onModifyPokemonPriority: 100,
-			onModifyPokemon: function (pokemon) {
-				pokemon.negateImmunity['Ground'] = true;
+			onNegateImmunity: function (pokemon, type) {
+				if (type === 'Ground') return false;
 			}
 		},
 		secondary: false,
@@ -13484,7 +13483,7 @@ exports.BattleMovedex = {
 				}
 				var damage = this.getDamage(source, target, move);
 				if (!damage && damage !== 0) {
-					this.add('-activate', target, 'Substitute', '[block] ' + move.name);
+					this.add('-fail', target);
 					return null;
 				}
 				damage = this.runEvent('SubDamage', target, source, move, damage);
@@ -14146,10 +14145,12 @@ exports.BattleMovedex = {
 		priority: 0,
 		flags: {protect: 1, mirror: 1, nonsky: 1},
 		isUnreleased: true,
-		onTryHit: function (target) {
+		onEffectiveness: function (typeMod, type, move) {
+			if (move.type !== 'Ground') return;
+			var target = this.activeTarget;
 			// only the attack that grounds the target ignores effectiveness
-			if (target.negateImmunity['Ground']) return;
-			target.negateImmunity['Ground'] = 'IgnoreEffectiveness';
+			if (!this.runEvent('NegateImmunity', target, 'Ground')) return;
+			if (!this.getImmunity('Ground', target)) return 0;
 		},
 		volatileStatus: 'smackdown',
 		ignoreImmunity: {'Ground': true},

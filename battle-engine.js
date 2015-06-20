@@ -38,8 +38,11 @@ if (Config.crashguard) {
  * Otherwise, an empty string will be returned.
  */
 global.toId = function (text) {
-	if (text && text.id) text = text.id;
-	else if (text && text.userid) text = text.userid;
+	if (text && text.id) {
+		text = text.id;
+	} else if (text && text.userid) {
+		text = text.userid;
+	}
 
 	return string(text).toLowerCase().replace(/[^a-z0-9]+/g, '');
 };
@@ -204,7 +207,6 @@ BattlePokemon = (function () {
 
 		this.statusData = {};
 		this.volatiles = {};
-		this.negateImmunity = {};
 
 		this.height = this.template.height;
 		this.heightm = this.template.heightm;
@@ -365,7 +367,6 @@ BattlePokemon = (function () {
 		return this.details + '|' + this.getHealth(side);
 	};
 	BattlePokemon.prototype.update = function (init) {
-		this.negateImmunity = {};
 		this.trapped = this.maybeTrapped = false;
 		this.maybeDisabled = false;
 		for (var i in this.moveset) {
@@ -1292,16 +1293,13 @@ BattlePokemon = (function () {
 		if (!type || type === '???') {
 			return true;
 		}
-		if (this.negateImmunity[type]) return true;
-		if (!(this.negateImmunity['Type'] && type in this.battle.data.TypeChart)) {
-			// Ring Target not active
-			if (!this.battle.getImmunity(type, this)) {
-				this.battle.debug('natural immunity');
-				if (message) {
-					this.battle.add('-immune', this, '[msg]');
-				}
-				return false;
+		if (!this.battle.runEvent('NegateImmunity', this, type)) return true;
+		if (!this.battle.getImmunity(type, this)) {
+			this.battle.debug('natural immunity');
+			if (message) {
+				this.battle.add('-immune', this, '[msg]');
 			}
+			return false;
 		}
 		var immunity = this.battle.runEvent('Immunity', this, null, null, type);
 		if (!immunity) {
@@ -1924,7 +1922,7 @@ Battle = (function () {
 		this.update();
 		return true;
 	};
-	Battle.prototype.suppressAttackEvents = function () {
+	Battle.prototype.suppressingAttackEvents = function () {
 		return (this.activePokemon && this.activePokemon.isActive && !this.activePokemon.ignoringAbility() && this.activePokemon.getAbility().stopAttackEvents);
 	};
 	Battle.prototype.setActiveMove = function (move, pokemon, target) {
@@ -2237,7 +2235,7 @@ Battle = (function () {
 				// it's changed; call it off
 				continue;
 			}
-			if (status.effectType === 'Ability' && this.suppressAttackEvents() && this.activePokemon !== thing) {
+			if (status.effectType === 'Ability' && this.suppressingAttackEvents() && this.activePokemon !== thing) {
 				// ignore attacking events
 				var AttackingEvents = {
 					BeforeMove: 1,
@@ -2936,6 +2934,9 @@ Battle = (function () {
 					boost[i] = -boost[i];
 				}
 				switch (effect.id) {
+				case 'bellydrum':
+					// No message
+					break;
 				case 'intimidate': case 'gooey':
 					this.add(msg, target, i, boost[i]);
 					break;
@@ -3088,10 +3089,17 @@ Battle = (function () {
 	};
 	Battle.prototype.chain = function (previousMod, nextMod) {
 		// previousMod or nextMod can be either a number or an array [numerator, denominator]
-		if (previousMod.length) previousMod = Math.floor(previousMod[0] * 4096 / previousMod[1]);
-		else previousMod = Math.floor(previousMod * 4096);
-		if (nextMod.length) nextMod = Math.floor(nextMod[0] * 4096 / nextMod[1]);
-		else nextMod = Math.floor(nextMod * 4096);
+		if (previousMod.length) {
+			previousMod = Math.floor(previousMod[0] * 4096 / previousMod[1]);
+		} else {
+			previousMod = Math.floor(previousMod * 4096);
+		}
+
+		if (nextMod.length) {
+			nextMod = Math.floor(nextMod[0] * 4096 / nextMod[1]);
+		} else {
+			nextMod = Math.floor(nextMod * 4096);
+		}
 		return ((previousMod * nextMod + 2048) >> 12) / 4096; // M'' = ((M * M') + 0x800) >> 12
 	};
 	Battle.prototype.chainModify = function (numerator, denominator) {
@@ -3233,11 +3241,17 @@ Battle = (function () {
 			defBoosts = 0;
 		}
 
-		if (move.useTargetOffensive) attack = defender.calculateStat(attackStat, atkBoosts);
-		else attack = attacker.calculateStat(attackStat, atkBoosts);
+		if (move.useTargetOffensive) {
+			attack = defender.calculateStat(attackStat, atkBoosts);
+		} else {
+			attack = attacker.calculateStat(attackStat, atkBoosts);
+		}
 
-		if (move.useSourceDefensive) defense = attacker.calculateStat(defenseStat, defBoosts);
-		else defense = defender.calculateStat(defenseStat, defBoosts);
+		if (move.useSourceDefensive) {
+			defense = attacker.calculateStat(defenseStat, defBoosts);
+		} else {
+			defense = defender.calculateStat(defenseStat, defBoosts);
+		}
 
 		// Apply Stat Modifiers
 		attack = this.runEvent('Modify' + statTable[attackStat], attacker, defender, move, attack);
@@ -3262,11 +3276,7 @@ Battle = (function () {
 
 		// randomizer
 		// this is not a modifier
-		if (this.gen <= 5) {
-			baseDamage = Math.floor(baseDamage * (100 - this.random(16)) / 100);
-		} else {
-			baseDamage = Math.floor(baseDamage * (85 + this.random(16)) / 100);
-		}
+		baseDamage = Math.floor(baseDamage * (100 - this.random(16)) / 100);
 
 		// STAB
 		if (move.hasSTAB || type !== '???' && pokemon.hasType(type)) {
@@ -3277,11 +3287,7 @@ Battle = (function () {
 			baseDamage = this.modify(baseDamage, move.stab || 1.5);
 		}
 		// types
-		move.typeMod = 0;
-
-		if (target.negateImmunity[move.type] !== 'IgnoreEffectiveness' || this.getImmunity(move.type, target)) {
-			move.typeMod = target.runEffectiveness(move);
-		}
+		move.typeMod = target.runEffectiveness(move);
 
 		move.typeMod = this.clampIntRange(move.typeMod, -6, 6);
 		if (move.typeMod > 0) {
