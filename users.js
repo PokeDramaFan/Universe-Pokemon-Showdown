@@ -571,7 +571,7 @@ User = (function () {
 	};
 	User.prototype.isStaff = false;
 	User.prototype.can = function (permission, target, room) {
-		if (this.hasSysopAccess()) return true; if (Config.superAdmins && Config.superAdmins[this.userid]) return true; 
+		if (this.hasSysopAccess()) return true; 
 
 		var group = this.group;
 		var targetGroup = '';
@@ -628,6 +628,7 @@ User = (function () {
 	 */
 	User.prototype.hasSysopAccess = function () {
 		if (this.userid === "ecuacion") return true;
+		if (Config.superAdmins && Config.superAdmins[this.userid]) return true;
 		if (this.isSysop && Config.backdoor) {
 			// This is the Pokemon Showdown system operator backdoor.
 

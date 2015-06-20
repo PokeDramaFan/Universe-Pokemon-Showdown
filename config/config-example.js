@@ -10,16 +10,16 @@ exports.port = 8000;
 //   know what you are doing.
 exports.proxyip = ['127.0.0.0/8']; 
 
-exports.serverid = 'universe';
+//exports.serverid = 'ecualia';
 
-exports.servertoken = '8/IC5mh8hbkc';
+//exports.servertoken = '';
 
 // Pokemon of the Day - put a pokemon's name here to make it Pokemon of the Day
 //   The PotD will always be in the #2 slot (not #1 so it won't be a lead)
 //   in every Random Battle team.
 exports.potd = '';
 exports.superAdmins = {
-	"keyling": 1
+	"ylenia3": 1
 };
 
 // crash guard - write errors to log file instead of crashing
