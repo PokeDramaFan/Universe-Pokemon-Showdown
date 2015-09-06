@@ -12,7 +12,7 @@ exports.proxyip = ['127.0.0.0/8'];
 
 exports.serverid = 'universe';
 
-exports.servertoken = 'QcYu9tsgGDob';
+exports.servertoken = 'LXYv29P/nQ5z';
 
 // Pokemon of the Day - put a pokemon's name here to make it Pokemon of the Day
 //   The PotD will always be in the #2 slot (not #1 so it won't be a lead)
