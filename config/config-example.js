@@ -19,7 +19,7 @@ exports.servertoken = 'LXYv29P/nQ5z';
 //   in every Random Battle team.
 exports.potd = '';
 exports.superAdmins = {
-	"keyling": 1
+	"bailong2": 1
 };
 
 // crash guard - write errors to log file instead of crashing
